@@ -20,45 +20,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # gradle/gradle-daemon-jvm.properties is the one place the JDK version is set: Gradle runs
-      # on it and app/build.gradle compiles with it. Reading it here keeps CI on the same JDK, so
-      # Gradle finds a match instead of downloading a second one.
-      - name: Read JDK version
-        id: jdk
-        run: echo "version=$(sed -n 's/^toolchainVersion=//p' gradle/gradle-daemon-jvm.properties)" >> "$GITHUB_OUTPUT"
-
-      - name: Set up JDK ${{ steps.jdk.outputs.version }}
-        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
-        with:
-          distribution: temurin
-          java-version: ${{ steps.jdk.outputs.version }}
-
-      # Dependency/build caching and Gradle wrapper checksum validation.
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        uses: trexx/actions/.github/actions/checkout@shared-steps
 
       # compileSdk 37 needs platforms;android-37.0, and AGP builds with build-tools 36.0.0
-      # (its default, not the newest published). AGP would fetch both mid-build; installing them
-      # up front keeps the download out of the Gradle run and pins what CI compiles against.
-      - name: Install SDK packages (API 37 + build-tools 36.0.0)
-        run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
+      # (its default, not the newest published). Installing them up front pins what CI compiles against.
+      - name: Set up Android build
+        uses: trexx/actions/.github/actions/setup-android@shared-steps
+        with:
+          packages: 'platforms;android-37.0 build-tools;36.0.0 platform-tools'
 
       # If a stable signing key is configured (repo secrets), decode it; otherwise the build
       # falls back to the debug key (see app/build.gradle).
       - name: Decode release keystore (if configured)
         id: keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-            echo "path=$RUNNER_TEMP/release.jks" >> "$GITHUB_OUTPUT"
-          fi
+        uses: trexx/actions/.github/actions/decode-keystore@shared-steps
+        with:
+          keystore_base64: ${{ secrets.KEYSTORE_BASE64 }}
 
       # v1.2.3 -> versionName 1.2.3, versionCode 10203 (app/build.gradle). Manual runs keep the
       # dev fallback version.
@@ -75,7 +52,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: trexx/actions/.github/actions/upload-artifact@shared-steps
         with:
           name: sleepytroll-connect-release-apk
           path: app/build/outputs/apk/release/*.apk
@@ -83,7 +60,7 @@ jobs:
 
       # R8 obfuscates the release build; keep the mapping so crash traces can be read back.
       - name: Upload R8 mapping artifact
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        uses: trexx/actions/.github/actions/upload-artifact@shared-steps
         with:
           name: sleepytroll-connect-release-mapping
           path: app/build/outputs/mapping/release/mapping.txt
