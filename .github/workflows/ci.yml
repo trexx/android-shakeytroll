@@ -13,12 +13,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: trexx/actions/.github/actions/checkout@shared-steps
+      - uses: trexx/actions/.github/actions/checkout@main
 
       # compileSdk 37 needs platforms;android-37.0, and AGP builds with build-tools 36.0.0
       # (its default, not the newest published). Installing them up front pins what CI compiles against.
       - name: Set up Android build
-        uses: trexx/actions/.github/actions/setup-android@shared-steps
+        uses: trexx/actions/.github/actions/setup-android@main
         with:
           packages: 'platforms;android-37.0 build-tools;36.0.0 platform-tools'
 
@@ -27,7 +27,7 @@ jobs:
 
       - name: Upload lint report
         if: failure()
-        uses: trexx/actions/.github/actions/upload-artifact@shared-steps
+        uses: trexx/actions/.github/actions/upload-artifact@main
         with:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
