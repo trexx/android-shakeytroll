@@ -1,6 +1,6 @@
 # ShakeyTrollApk
 
-A small, self-contained Android app that controls a **Sleepytroll** Bluetooth-LE baby rocker,
+A 3rd party APK for controlling the SleepyTroll bluetooth baby rocker. A small, self-contained Android app that controls a **Sleepytroll** Bluetooth-LE baby rocker,
 built by reverse-engineering the official app, the device firmware, and a sniffed BLE session.
 It speaks the device's AT-command protocol directly: start/stop rocking, set speed, mode, sleep
 program, and sensitivities, and shows live status (battery, running/standby state, speed,
@@ -10,7 +10,9 @@ sensor sensitivities, run timer, serial/version, usage counters).
 > for interoperability with a device I own. Use at your own risk — this drives a motor near a
 > sleeping infant. It does **not** remove the device's built-in safety limits (see below).
 
-## Why?
+## Overview
+
+### Why?
 * Official APK has a 3 second unskippable intro video play before the app is usable.
 * App often died when backgrounded / idle so that intro video played quite often.
 * UI Colour theme was bright white colours not ideal at night when connecting to it.
@@ -19,7 +21,7 @@ sensor sensitivities, run timer, serial/version, usage counters).
   `INTERNET` permission at all, and no location permission either (`BLUETOOTH_SCAN` is declared
   `neverForLocation`).
 
-## What the official app talks to
+### What the official app talks to
 
 From the decompiled `com.sleepytroll.slt` **1.6.7** — a baby rocker that only ever needs a BLE
 link nonetheless ships `INTERNET` + `ACCESS_NETWORK_STATE` and `android:usesCleartextTraffic="true"`:
@@ -46,7 +48,7 @@ link nonetheless ships `INTERNET` + `ACCESS_NETWORK_STATE` and `android:usesClea
 This app implements **no OTA and no networking at all**: its merged manifest has no `INTERNET`
 permission, so it can't reach any of the above even if it wanted to.
 
-## Features
+### Features
 
 - Scan for `Sleepytroll_…` devices in a bottom sheet, connect, and auto-reconnect (3 attempts, 3 s
   apart) to the ISSC/Microchip transparent-UART GATT service. While a device is connected the
@@ -76,7 +78,7 @@ permission, so it can't reach any of the above even if it wanted to.
 - Warning banners for **low battery** (<6 %) and the device's **3-hour "needs to rest"** notice;
   standby is shown on the main control itself. The theme follows the system light/dark setting.
 
-## How it works (protocol in brief)
+### How it works (protocol in brief)
 
 The phone writes ASCII AT commands terminated with `;` to the transparent-UART write
 characteristic (`49535343-8841-…`, write-without-response); the device streams back
@@ -99,7 +101,30 @@ reverse-engineering docs under [`docs/`](docs/):
 [`FIRMWARE_ANALYSIS.md`](docs/FIRMWARE_ANALYSIS.md), and
 [`APK_ANALYSIS.md`](docs/APK_ANALYSIS.md).
 
-## Building
+### Safety
+
+The device enforces a **3-hour runtime cap** and **sensor-mode duration limits** in firmware.
+This app surfaces them but does not defeat them. There is **no OTA/firmware-flashing** capability
+in this app. Don't rely on any of this for unattended operation.
+
+## Usage
+
+### Sideloading
+
+1. Download `app-release.apk` — from the GitHub Release for a tag, or from the
+   `sleepytroll-connect-release-apk` artifact on the **Build Release APK** Actions run (or build it
+   yourself, see below).
+2. On the phone (**Android 16+**), allow installs from your browser/file manager, then open the APK.
+   It installs as **Sleepytroll**. Builds up to v1.0.0 used the package `com.example.bleat`;
+   uninstall that one first, because the current package (`com.trexx.shakeytroll`) installs
+   alongside it rather than updating it.
+3. Grant the **Nearby devices** permission (notifications are optional: they let the connection
+   status and its Disconnect action show in the shade), tap the connection chip to scan, pick your
+   `Sleepytroll_…` device, and control it.
+
+## Development
+
+### Building
 
 **Toolchain**:
 
@@ -158,21 +183,39 @@ All user-visible text lives in `app/src/main/res/values/strings.xml`; debug buil
 `en-XA` pseudo-locale (Settings → System → Languages) so a leftover hardcoded string stands out
 as plain English among the accented pseudo-text.
 
-## Releases (GitHub Actions)
+### CI
 
-Two workflows in `.github/workflows/`:
+`ci.yml` in `.github/workflows/` runs lint and the unit tests and builds the debug APK on pushes
+to `main`, on pull requests, and on demand. Lint errors fail the build and the HTML report is
+uploaded.
 
-- **`ci.yml`** — runs lint and the unit tests and builds the debug APK on pushes to `main`, on
-  pull requests, and on demand. Lint errors fail the build and the HTML report is uploaded.
-- **`release.yml`** — builds a **release APK** and uploads it as the
-  `sleepytroll-connect-release-apk` workflow artifact, plus the R8 `mapping.txt` as
-  `sleepytroll-connect-release-mapping` (keep it to read obfuscated crash traces). Trigger it
-  either by pushing a version tag (`git tag v1.0.1 && git push --tags`) or from the Actions tab
-  ("Run workflow"). Tag builds take their version from the tag — `v1.2.3` becomes `versionName`
-  `1.2.3` and `versionCode` `10203` — and also attach the APK and mapping to the matching GitHub
-  Release, creating it with generated notes if it doesn't exist yet; a re-run replaces the assets.
-  Manual runs and local builds use the `1.0.0-dev` fallback with `versionCode` 1, so always
-  install tag builds over each other, not over a dev build.
+### Project layout
+
+```
+app/src/main/java/com.trexx.shakeytroll/
+  ble/BleForegroundService.kt   – GATT client, AT commands, telemetry parsing, notification
+  ble/SensorActivity.kt         – sensor-trigger tracking (inferred from run-state edges)
+  commands/CommandModel.kt      – control definitions (toggle / slider / options / action)
+  commands/CommandsViewModel.kt – command building + two-way state sync
+  ui/MainActivity.kt            – permissions, BLE scanning, service binding, demo mode
+  ui/HomeScreen.kt              – screen composition
+  ui/components/                – StatusHeader, HeroRockingControl, SensorActivityCard,
+                                  ControlSections, ScanSheet
+  ui/theme/                     – day/night colour schemes, Nunito type, shapes
+docs/                           – protocol, firmware and official-APK reverse-engineering notes
+```
+
+## Releases
+
+`release.yml` in `.github/workflows/` builds a **release APK** and uploads it as the
+`sleepytroll-connect-release-apk` workflow artifact, plus the R8 `mapping.txt` as
+`sleepytroll-connect-release-mapping` (keep it to read obfuscated crash traces). Trigger it
+either by pushing a version tag (`git tag v1.0.1 && git push --tags`) or from the Actions tab
+("Run workflow"). Tag builds take their version from the tag — `v1.2.3` becomes `versionName`
+`1.2.3` and `versionCode` `10203` — and also attach the APK and mapping to the matching GitHub
+Release, creating it with generated notes if it doesn't exist yet; a re-run replaces the assets.
+Manual runs and local builds use the `1.0.0-dev` fallback with `versionCode` 1, so always
+install tag builds over each other, not over a dev build.
 
 ### Signing
 
@@ -198,41 +241,6 @@ gh secret set KEY_PASSWORD      --body 'your-key-password'
 
 Keep `release.jks` private (it's git-ignored). With those secrets present, `release.yml` decodes
 the keystore and signs with it; without them, it uses the debug key.
-
-## Sideloading
-
-1. Download `app-release.apk` — from the GitHub Release for a tag, or from the
-   `sleepytroll-connect-release-apk` artifact on the **Build Release APK** Actions run (or build it
-   yourself, see above).
-2. On the phone (**Android 16+**), allow installs from your browser/file manager, then open the APK.
-   It installs as **Sleepytroll**. Builds up to v1.0.0 used the package `com.example.bleat`;
-   uninstall that one first, because the current package (`com.trexx.shakeytroll`) installs
-   alongside it rather than updating it.
-3. Grant the **Nearby devices** permission (notifications are optional: they let the connection
-   status and its Disconnect action show in the shade), tap the connection chip to scan, pick your
-   `Sleepytroll_…` device, and control it.
-
-## Project layout
-
-```
-app/src/main/java/com.trexx.shakeytroll/
-  ble/BleForegroundService.kt   – GATT client, AT commands, telemetry parsing, notification
-  ble/SensorActivity.kt         – sensor-trigger tracking (inferred from run-state edges)
-  commands/CommandModel.kt      – control definitions (toggle / slider / options / action)
-  commands/CommandsViewModel.kt – command building + two-way state sync
-  ui/MainActivity.kt            – permissions, BLE scanning, service binding, demo mode
-  ui/HomeScreen.kt              – screen composition
-  ui/components/                – StatusHeader, HeroRockingControl, SensorActivityCard,
-                                  ControlSections, ScanSheet
-  ui/theme/                     – day/night colour schemes, Nunito type, shapes
-docs/                           – protocol, firmware and official-APK reverse-engineering notes
-```
-
-## Safety
-
-The device enforces a **3-hour runtime cap** and **sensor-mode duration limits** in firmware.
-This app surfaces them but does not defeat them. There is **no OTA/firmware-flashing** capability
-in this app. Don't rely on any of this for unattended operation.
 
 ## License
 
