@@ -13,7 +13,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -206,7 +205,7 @@ private fun LabeledSlider(
         color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
       )
     }
-    Slider(
+    SyncedSlider(
       value = value.toFloat(),
       onValueChange = { raw ->
         // Snap to the command's step; "continuous" just hides the tick dots for dense ranges.

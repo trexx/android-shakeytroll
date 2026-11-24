@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +46,7 @@ import com.trexx.shakeytroll.ui.components.HeroState
 import com.trexx.shakeytroll.ui.components.ScanSheet
 import com.trexx.shakeytroll.ui.components.SensorActivityCard
 import com.trexx.shakeytroll.ui.components.StatusHeader
+import com.trexx.shakeytroll.ui.components.SyncedSlider
 import com.trexx.shakeytroll.ui.components.heroState
 import com.trexx.shakeytroll.ui.components.rememberElapsedRealtime
 import kotlinx.coroutines.delay
@@ -219,7 +219,7 @@ private fun SpeedSlider(item: CommandUiState, enabled: Boolean, onSlider: (Strin
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
       Spacer(Modifier.width(12.dp))
-      Slider(
+      SyncedSlider(
         value = value.toFloat(),
         onValueChange = { value = it.roundToInt().coerceIn(item.min, item.max) },
         onValueChangeFinished = { onSlider(item.id, value) },
