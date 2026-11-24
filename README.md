@@ -105,19 +105,20 @@ reverse-engineering docs under [`docs/`](docs/):
 
 | | Version |
 |---|---|
-| Android compile/target/**min** SDK | compileSdk = 37; minSdk/targetSdk = 36 (Android 16) |
+| Android compile/target/**min** SDK | compileSdk = 37.1; minSdk/targetSdk = 36 (Android 16) |
 | Android Gradle Plugin | see `build.gradle` (Renovate keeps it current) |
 | Gradle | see `gradle/wrapper/gradle-wrapper.properties` (committed wrapper) |
 | Kotlin / Compose compiler plugin | see `build.gradle` (Kotlin ships with AGP 9 — no separate Kotlin plugin) |
 | JDK (runs Gradle, CI, bytecode target) | see `gradle/gradle-daemon-jvm.properties` |
 
-You need the **Android SDK**. The platform for compileSdk 37 is packaged as `platforms;android-37.0`,
-and AGP builds with **build-tools 36.0.0** (its own default, not the newest published). With
-the SDK licences accepted, AGP fetches whatever is missing during the build; to install them
+You need the **Android SDK**. The app compiles against the 37.1 minor release (Compose 1.13
+requires at least 37.1), packaged as `platforms;android-37.1`, and AGP builds with
+**build-tools 36.0.0** (its own default, not the newest published). With the SDK
+licences accepted, AGP fetches whatever is missing during the build; to install them
 up front instead:
 
 ```bash
-sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
+sdkmanager "platforms;android-37.1" "build-tools;36.0.0"
 ```
 
 One JDK, Temurin at the version set in `gradle/gradle-daemon-jvm.properties`, runs the Gradle
